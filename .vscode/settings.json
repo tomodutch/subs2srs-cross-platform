@@ -1,0 +1,9 @@
+{
+    "python.pythonPath": "/Users/thomasfarla/.local/share/virtualenvs/subs2srs-cross-platform-_s6rC9C4/bin/python",
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestEnabled": true
+}
