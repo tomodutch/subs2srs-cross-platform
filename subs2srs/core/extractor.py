@@ -26,7 +26,7 @@ class Extractor:
                 native_sub=""
             )
 
-            yield ("row", preview)
+            yield preview
 
     def sequence_marker(self, episode, sequence, start):
         marker = (start / 1000000)

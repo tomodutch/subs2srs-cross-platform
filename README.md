@@ -14,6 +14,8 @@ Create an open source and cross platform alternative for the popular [subs2srs](
 
 ![screenshot1](screenshots/screenshot2.png)
 
+![screenshot-preview](screenshots/screenshot-preview.png)
+
 # Contribute
 
 The project is still young and in active development so there's a lot to do. No effort has been made into issue tracking yet so for the time being. Please [create an issue](https://github.com/TFarla/subs2srs-cross-platform/issues/new) for any questions.
