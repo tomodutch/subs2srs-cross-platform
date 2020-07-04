@@ -82,6 +82,9 @@ class PreviewModel:
             self._state.preview.inactive_items.add(index)
             item = preview_table.item(index, i.column())
             item.setBackground(Qt.darkRed)
+            f = item.font()
+            f.setStrikeOut(True)
+            item.setFont(f)
 
         self.updateActiveLineCount()
 
@@ -110,6 +113,9 @@ class PreviewModel:
 
             item: QTableWidgetItem = preview_table.item(index, i.column())
             item.setBackground(QBrush())
+            f = item.font()
+            f.setStrikeOut(False)
+            item.setFont(f)
 
         self.updateActiveLineCount()
 
