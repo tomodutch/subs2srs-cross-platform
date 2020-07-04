@@ -18,7 +18,6 @@ class Extractor:
         self._input = ffmpeg.input(self._media_file)
 
     def preview(self):
-        results = []
         for line in self._target_sub.lines():
             preview = PreviewItem(
                 from_time=line.start,
@@ -27,9 +26,7 @@ class Extractor:
                 native_sub=""
             )
 
-            results.append(preview)
-
-        return results
+            yield ("row", preview)
 
     def sequence_marker(self, episode, sequence, start):
         marker = (start / 1000000)

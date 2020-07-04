@@ -1,130 +1,13 @@
-import sys
-import qdarkstyle
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from subs2srs.gui.globalobject import FileChangeEvent, GlobalObject
-from subs2srs.core.extractor import Extractor
-from subs2srs.core.subtitle import Subtitle
 
 
-class ProcessRunnable(QRunnable):
-    def __init__(self, target, args):
-        QRunnable.__init__(self)
-        self.t = target
-        self.args = args
+class MainWidget(QWidget):
+    def __init__(self, parent=None, flags=Qt.WindowFlags()):
+        super().__init__(parent=parent, flags=flags)
 
-    def run(self):
-        self.t(*self.args)
-
-    def start(self):
-        QThreadPool.globalInstance().start(self)
-
-
-class State:
-    deck_name = None
-    sub1_file = "/Users/thomasfarla/Downloads/Eizouken ni wa Te wo Dasu na! - 01 (NHKG).srt"
-    sub2_file = None
-    video_file = "/Users/thomasfarla/Downloads/[HorribleSubs] Eizouken ni wa Te wo Dasu na! - 01 [480p].mkv"
-    output_file = "/Users/thomasfarla/Documents/test-subs"
-
-
-state = State()
-
-
-class App(QMainWindow):
-    @pyqtSlot()
-    def setDeckName(self, event):
-        child = self.findChild(QObject, "Deck.Name")
-        state.deck_name = child.text()
-
-    @pyqtSlot()
-    def changeSub2(self, event):
-        if event is None:
-            return
-
-        state.sub1_file = event.value
-        input = self.findChild(QObject, "sub2Input")
-        input.setText(event.value)
-
-    @pyqtSlot()
-    def changeSub1(self, event):
-        if event is None:
-            return
-
-        state.sub1_file = event.value
-        input = self.findChild(QObject, "sub1Input")
-        input.setText(event.value)
-
-    @pyqtSlot()
-    def changeVideo(self, event):
-        if event is None:
-            return
-
-        state.video_file = event.value
-        input = self.findChild(QObject, "Video.Input")
-        input.setText(event.value)
-
-    @pyqtSlot()
-    def changeOutput(self, event):
-        if event is None:
-            return
-
-        state.output_file = event.value
-        input = self.findChild(QObject, "Output.Input")
-        input.setText(event.value)
-
-    @pyqtSlot(str, int, int, int)
-    def updateProgress(self, type, value, i, total):
-        self.progress.setValue(value)
-        if type == "audio":
-            self.progress.setLabelText(
-                "Audio (" + str(i) + "/ " + str(total) + ")")
-        elif type == "picture":
-            self.progress.setLabelText(
-                "Picture (" + str(i) + "/ " + str(total) + ")")
-
-    def generate(self, event):
-        media_file = state.video_file
-        target_sub = state.sub1_file
-        output = state.output_file
-
-        p = QProgressDialog("Creating audio files", "Cancel", 0, 100, self)
-
-        p.setWindowModality(Qt.WindowModal)
-        p.setObjectName("Progress.Dialog")
-        p.setCancelButton(None)
-        self.progress = p
-        p.setAutoClose(True)
-        p.show()
-
-        def run():
-            extractor = Extractor(media_file, Subtitle(target_sub))
-            for type, i, total in extractor.run(output):
-                val = int(i / total * 100)
-                QMetaObject.invokeMethod(self,
-                                         "updateProgress", Qt.QueuedConnection,
-                                         Q_ARG(str, type),
-                                         Q_ARG(int, val),
-                                         Q_ARG(int, i),
-                                         Q_ARG(int, total))
-
-        process = ProcessRunnable(target=run, args=())
-        process.start()
-
-    def __init__(self):
-        super().__init__()
-
-        GlobalObject().addEventListener("changeDeckName", self.setDeckName)
-        GlobalObject().addEventListener("changeSub1", self.changeSub1)
-        GlobalObject().addEventListener("changeSub2", self.changeSub2)
-        GlobalObject().addEventListener("changeVideo", self.changeVideo)
-        GlobalObject().addEventListener("changeOutput", self.changeOutput)
-        GlobalObject().addEventListener("generate", self.generate)
-
-    def run(self):
-        super().__init__()
-        self.setWindowTitle("subs2srs")
         layout = QVBoxLayout()
 
         layout.addWidget(SubtitlePaneGrid())
@@ -132,14 +15,8 @@ class App(QMainWindow):
         layout.addWidget(SaveRow())
 
         layout.setContentsMargins(0, 0, 0, 0)
-        GlobalObject()
-        widget = QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
+        self.setLayout(layout)
         layout.setAlignment(Qt.AlignTop)
-
-        field = self.findChild(QObject, "Deck.Name")
-        self.show()
 
 
 class TimingGroup(QGroupBox):
@@ -237,7 +114,11 @@ class SaveRow(QWidget):
 
         layout.addWidget(group, 0, 0, 6, 1)
 
+        def toPreview():
+            GlobalObject().dispatchEvent("preview")
+
         preview_button = QPushButton("Preview")
+        preview_button.clicked.connect(toPreview)
 
         def go():
             GlobalObject().dispatchEvent("generate")
@@ -362,11 +243,3 @@ class OutputRow():
         y = self._y
         layout.addWidget(self.button, y, 0, 1, 1)
         layout.addWidget(self.input, y, 1, 1, 6)
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    app.setStyleSheet(qdarkstyle.load_stylesheet())
-    subs2srs = App()
-    subs2srs.run()
-    sys.exit(app.exec_())
