@@ -18,14 +18,12 @@ class Preview(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setAlignment(Qt.AlignTop)
         self.setLayout(layout)
-        back_btn = button("back", "preview.back", "backToMain")
 
         display = PreviewDisplay(items)
 
         layout.addWidget(self.setup_top())
         layout.addWidget(display)
         layout.addWidget(PreviewSnapshot())
-        layout.addWidget(back_btn)
 
     def setup_top(self):
         return Top()
@@ -169,3 +167,25 @@ class PreviewSnapshot(QWidget):
             textarea("PreviewSub2", text=""), alignment=Qt.AlignTop)
 
         layout.addLayout(details_layout, 0, 2, 1, 1)
+
+        preview_audio_button = button(
+            "Preview Audio", "PreviewAudio", "previewAdio")
+
+        layout.addWidget(preview_audio_button, 1, 0)
+        bottom_layout = QHBoxLayout()
+
+        bottom_layout.addWidget(BottomButton(), alignment=Qt.AlignRight)
+        layout.addLayout(bottom_layout, 1, 2)
+
+
+class BottomButton(QWidget):
+    def __init__(self, parent=None, flags=Qt.WindowFlags()):
+        super().__init__(parent=parent, flags=flags)
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+
+        back_btn = button("back", "preview.back", "backToMain")
+        generate_btn = button("generate", "Preview.Generate", "generate")
+
+        layout.addWidget(back_btn, alignment=Qt.AlignRight)
+        layout.addWidget(generate_btn, alignment=Qt.AlignRight)

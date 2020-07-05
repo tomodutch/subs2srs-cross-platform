@@ -55,31 +55,35 @@ class Extractor:
 
         return "{}_{}_{}".format(episode, f'{sequence:03}', formatted)
 
-    def run(self, output_dir, start=0, end=None):
+    def run(self, output_dir, start=0, end=None, exclude=None):
+        if exclude is None:
+            exclude = set()
+
         outputs = []
         picture_outputs = []
         csv_path = os.path.join(output_dir, "output.csv")
         with open(csv_path, 'w+', encoding='utf-8') as f:
             writer = csv.writer(f)
             for i, line in enumerate(self._target_sub.lines()):
-                if i >= start and (end is None or i < end):
-                    loc = os.path.join(output_dir, str(i) + ".mp3")
-                    marker = self.sequence_marker(
-                        episode=1, sequence=i + 1, start=line.start)
-                    audio = self._input.audio.filter(
-                        'atrim', start=line.start / 1000, end=line.end / 1000)
-                    out = ffmpeg.output(audio, loc).overwrite_output()
-                    outputs.append(out)
-                    timestamp = line.start
-                    writer.writerow([
-                        marker,
-                        line.text
-                    ])
+                if not i in exclude:
+                    if i >= start and (end is None or i < end):
+                        loc = os.path.join(output_dir, str(i) + ".mp3")
+                        marker = self.sequence_marker(
+                            episode=1, sequence=i + 1, start=line.start)
+                        audio = self._input.audio.filter(
+                            'atrim', start=line.start / 1000, end=line.end / 1000)
+                        out = ffmpeg.output(audio, loc).overwrite_output()
+                        outputs.append(out)
+                        timestamp = line.start
+                        writer.writerow([
+                            marker,
+                            line.text
+                        ])
 
-                    loc_pic = os.path.join(output_dir, str(i) + ".jpg")
-                    picture_output = ffmpeg.input(self._media_file, ss=line.start / 1000).output(
-                        loc_pic, vframes=1, format='image2', vcodec='mjpeg').overwrite_output()
-                    picture_outputs.append(picture_output)
+                        loc_pic = os.path.join(output_dir, str(i) + ".jpg")
+                        picture_output = ffmpeg.input(self._media_file, ss=line.start / 1000).output(
+                            loc_pic, vframes=1, format='image2', vcodec='mjpeg').overwrite_output()
+                        picture_outputs.append(picture_output)
 
         total = len(outputs) + len(picture_outputs)
         total_audio = len(outputs)
@@ -99,8 +103,8 @@ class Extractor:
         return picture_output.run(capture_stdout=True)[0]
 
     def get_audio(self, start_second, end_second):
-        audio = self._input.audio.filter(
+        out = self._input.audio.filter(
             'atrim', start=start_second, end=end_second) \
             .output('-', format='wav').overwrite_output()
 
-        return audio.run(capture_stdout=True)[0]
+        return out.run(capture_stdout=True)[0]

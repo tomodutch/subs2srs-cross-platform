@@ -12,6 +12,7 @@ ffmpeg-python = "*"
 pysubs2 = "*"
 pyqt5 = "==5.9.2"
 qdarkstyle = "*"
+simpleaudio = "*"
 
 [requires]
 python_version = "3.7"

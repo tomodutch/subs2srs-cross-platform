@@ -9,7 +9,8 @@ from subs2srs.gui.state import State, StatePreview
 from typing import List
 from subs2srs.gui.main_widget import MainWidget
 from subs2srs.core.preview_item import PreviewItem
-from PyQt5.QtMultimedia import QSoundEffect
+from PyQt5.QtMultimedia import QSoundEffect, QSound, QAudioFormat, QAudioOutput
+from subs2srs.gui.audio import Audio
 
 
 class PreviewModel:
@@ -27,6 +28,7 @@ class PreviewModel:
         GlobalObject().addEventListener("previewSelectAll", self.selectAllPreview)
         GlobalObject().addEventListener("previewSelectNone", self.selectNonePreview)
         GlobalObject().addEventListener("previewSelectInvert", self.selectInvertPreview)
+        GlobalObject().addEventListener("previewAdio", self.playAudio)
 
     def table(self):
         preview_table: QTableWidget = self._app.findChild(
@@ -35,6 +37,26 @@ class PreviewModel:
             return None
 
         return preview_table
+
+    @pyqtSlot()
+    def playAudio(self, event):
+        preview_table = self.table()
+        index = preview_table.selectedIndexes()
+        row = 0
+        if index:
+            row = index[0].row()
+
+        item = self._state.preview.items[row]
+        start = item.from_time / 1000
+        audio_bytes = self._extractor.get_audio(
+            start, item.end_time / 1000)
+
+        if self._state.preview.audio:
+            self._state.preview.audio.stop()
+
+        audio = Audio(audio_bytes)
+        self._state.preview.audio = audio
+        audio.play()
 
     @pyqtSlot()
     def selectInvertPreview(self, event):
@@ -149,28 +171,20 @@ class PreviewModel:
             snapshot1.setText(item.target_sub)
 
             if item.native_sub:
-                snapshot2: QTextEdit = self._app.findChild(QObject, "PreviewSub2")
+                snapshot2: QTextEdit = self._app.findChild(
+                    QObject, "PreviewSub2")
                 snapshot2.setText(item.native_sub)
 
             output = self._extractor.get_snapshot(item.from_time_seconds())
+            # TODO: update snapshot on different thread so it's non blocking
             l: QLabel = self._app.findChild(QLabel, "PreviewSnapshot")
             p = QPixmap()
             p.loadFromData(output)
             l.setPixmap(p)
 
-            audio = self._extractor.get_audio(item.from_time / 1000, item.end_time / 1000)
-
-            sound = QSoundEffect()
-            sound.setVolume(1)
-            sound.setSource(
-                # QUrl.fromEncoded(audio)
-                QUrl.fromLocalFile("/Users/thomasfarla/Documents/subs2srs-cross-platform/test.wav")
-            )
-
-            sound.play()
-
     @pyqtSlot()
     def toMain(self, event):
+        self._state.preview = StatePreview()
         self._app.setCentralWidget(MainWidget())
 
     @pyqtSlot()

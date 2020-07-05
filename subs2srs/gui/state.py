@@ -10,6 +10,7 @@ class StatePreview:
         super().__init__()
         self.items = []
         self.inactive_items = set()
+        self.audio = None
 
 
 class State:
