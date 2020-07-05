@@ -1,3 +1,4 @@
+import hashlib
 import ffmpeg
 from .subtitle import Subtitle
 from .preview_item import PreviewItem
@@ -21,11 +22,35 @@ class Extractor:
 
     def preview(self):
         def get_native(target):
-            for line in self._native_sub.lines():
-                if line.start >= target.start and line.start <= target.end:
-                    return line
+            marge = 200
+            lines = []
+            if self._native_sub:
+                lines = self._native_sub.lines()
 
-        for line in self._target_sub.lines():
+            total = len(lines)
+            i = 0
+            while i < total:
+                line = lines[i]
+                next_line = None
+                try:
+                    next_line = lines[i + 1]
+                except IndexError:
+                    pass
+
+                if line.start >= target.start - marge:
+                    if line.start <= target.end + marge:
+                        return line
+
+                    if next_line and target.end < next_line.start:
+                        return line
+
+                i = i + 1
+
+        chars = set(["→"])
+        lines = self._target_sub.lines()
+        i = 0
+        while i < len(lines):
+            line = lines[i]
             native_line = get_native(line)
             native_sub = ""
             if native_line:
@@ -38,6 +63,25 @@ class Extractor:
                 native_sub=native_sub
             )
 
+            l = line
+            try:
+                while l.text.endswith('→'):
+                    # concat and skip next line
+                    next_item = lines[i + 1]
+                    l = next_item
+                    i = i + 1
+                    preview.end_time = next_item.end
+                    preview.target_sub += next_item.text
+                    native_line = get_native(next_item)
+                    if native_line:
+                        preview.native_sub += native_line.text
+            except IndexError:
+                pass
+            finally:
+                preview.target_sub = preview.target_sub.replace(
+                    "→", "").replace("\\N", "")
+
+            i = i + 1
             yield preview
 
     def sequence_marker(self, episode, sequence, start):
@@ -55,7 +99,7 @@ class Extractor:
 
         return "{}_{}_{}".format(episode, f'{sequence:03}', formatted)
 
-    def run(self, output_dir, start=0, end=None, exclude=None):
+    def run(self, output_dir, tags=[], start=0, end=None, exclude=None):
         if exclude is None:
             exclude = set()
 
@@ -64,26 +108,41 @@ class Extractor:
         csv_path = os.path.join(output_dir, "output.csv")
         with open(csv_path, 'w+', encoding='utf-8') as f:
             writer = csv.writer(f)
-            for i, line in enumerate(self._target_sub.lines()):
+            for i, line in enumerate(self.preview()):
+                line: PreviewItem
+                start = line.from_time
+                end = line.end_time
                 if not i in exclude:
-                    if i >= start and (end is None or i < end):
-                        loc = os.path.join(output_dir, str(i) + ".mp3")
-                        marker = self.sequence_marker(
-                            episode=1, sequence=i + 1, start=line.start)
-                        audio = self._input.audio.filter(
-                            'atrim', start=line.start / 1000, end=line.end / 1000)
-                        out = ffmpeg.output(audio, loc).overwrite_output()
-                        outputs.append(out)
-                        timestamp = line.start
-                        writer.writerow([
-                            marker,
-                            line.text
-                        ])
+                    name = generate_name(line.target_sub)
+                    audio_name = name + ".mp3"
+                    media_name = name + ".jpg"
+                    collection_dir = os.path.join(
+                        output_dir, "collection.media")
+                    if not os.path.exists(collection_dir):
+                        os.mkdir(collection_dir)
 
-                        loc_pic = os.path.join(output_dir, str(i) + ".jpg")
-                        picture_output = ffmpeg.input(self._media_file, ss=line.start / 1000).output(
-                            loc_pic, vframes=1, format='image2', vcodec='mjpeg').overwrite_output()
-                        picture_outputs.append(picture_output)
+                    loc = os.path.join(collection_dir, name + ".mp3")
+                    marker = self.sequence_marker(
+                        episode=1, sequence=i + 1, start=start)
+                    audio = self._input.audio.filter(
+                        'atrim', start=start / 1000, end=end / 1000)
+                    out = ffmpeg.output(audio, loc).overwrite_output()
+                    outputs.append(out)
+                    timestamp = start
+                    writer.writerow([
+                        marker,
+                        '[sound:{}]'.format(audio_name),
+                        '<img src="{}">'.format(media_name),
+                        name,
+                        line.target_sub,
+                        line.native_sub,
+                        "tags:" + " ".join(tags)
+                    ])
+
+                    loc_pic = os.path.join(collection_dir, media_name)
+                    picture_output = ffmpeg.input(self._media_file, ss=start / 1000).output(
+                        loc_pic, vframes=1, format='image2', vcodec='mjpeg').overwrite_output()
+                    picture_outputs.append(picture_output)
 
         total = len(outputs) + len(picture_outputs)
         total_audio = len(outputs)
@@ -108,3 +167,7 @@ class Extractor:
             .output('-', format='wav').overwrite_output()
 
         return out.run(capture_stdout=True)[0]
+
+
+def generate_name(text: str):
+    return hashlib.sha1(text.encode('utf-8')).hexdigest()

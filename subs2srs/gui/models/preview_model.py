@@ -1,3 +1,4 @@
+import re
 from subs2srs.gui.globalobject import GlobalObject
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -102,15 +103,17 @@ class PreviewModel:
 
         for i in preview_table.selectedIndexes():
             i: QModelIndex
-            index = i.row()
-            self._state.preview.inactive_items.add(index)
-            item = preview_table.item(index, i.column())
-            item.setBackground(Qt.darkRed)
-            f = item.font()
-            f.setStrikeOut(True)
-            item.setFont(f)
+            self.setInactive(preview_table, i.row(), i.column())
 
         self.updateActiveLineCount()
+
+    def setInactive(self, preview_table, row_index, column_index):
+        self._state.preview.inactive_items.add(row_index)
+        item = preview_table.item(row_index, column_index)
+        item.setBackground(Qt.darkRed)
+        f = item.font()
+        f.setStrikeOut(True)
+        item.setFont(f)
 
     def updateActiveLineCount(self):
         active_label: QLabel = self._app.findChild(
@@ -198,10 +201,60 @@ class PreviewModel:
 
         items = list(self._extractor.preview())
         self._state.preview.items = items
+        self._state.preview.inactive_items.add(1)
 
         preview = Preview(items)
 
         self._app.setCentralWidget(preview)
-        self.updateActiveLineCount()
         self.updateDetails(0)
         self._app.updateGeometry()
+
+        preview_table = self.table()
+        for i, item in enumerate(items):
+            item: PreviewItem
+            sub = item.target_sub
+            if not is_good_japanese(sub):
+                self.setRowInactive(preview_table, i)
+
+        self.updateActiveLineCount()
+
+    def setRowInactive(self, preview_table, row_index):
+        for i in range(preview_table.columnCount()):
+            self.setInactive(preview_table, row_index, i)
+
+
+def is_good_japanese(text: str):
+    # （
+    # ）
+    # remove: 。♪♪～
+    # if len(text) < 6:
+    #     return False
+
+    if not is_japanese(text):
+        return False
+
+    clean = re.sub(r'（.*）', '', text).strip()
+    if not is_min_length(clean):
+        return False
+
+    return True
+
+
+kanji_regex = re.compile('([一-龯])')
+kana_regex = re.compile('([ぁ-んァ-ン])')
+japanese_regex = re.compile('([一-龯ぁ-んァ-ン])')
+
+
+def is_japanese(text: str):
+    matches = re.search(japanese_regex, text)
+
+    return not matches is None
+
+
+def is_min_length(text: str):
+    kanji_match = re.findall(kanji_regex, text)
+    if kanji_match:
+        return len(text) > 6
+
+    else:
+        return len(text) > 8

@@ -99,7 +99,8 @@ class RootModel:
             if self._state.preview:
                 exclude = self._state.preview.inactive_items
 
-            for type, i, total in extractor.run(output, exclude=exclude):
+            tags = [self._state.deck_name]
+            for type, i, total in extractor.run(output, exclude=exclude, tags=tags):
                 val = int(i / total * 100)
                 QMetaObject.invokeMethod(self._app,
                                          "updateProgress", Qt.QueuedConnection,
