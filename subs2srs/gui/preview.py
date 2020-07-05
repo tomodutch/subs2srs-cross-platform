@@ -24,6 +24,7 @@ class Preview(QWidget):
 
         layout.addWidget(self.setup_top())
         layout.addWidget(display)
+        layout.addWidget(PreviewSnapshot())
         layout.addWidget(back_btn)
 
     def setup_top(self):
@@ -74,11 +75,12 @@ class PreviewDisplay(QWidget):
         table = QTableWidget()
         table.setObjectName("Preview.Table")
         table.itemSelectionChanged.connect(dispatch("previewSelectionChange"))
-        table.setColumnCount(4)
+        table.setColumnCount(5)
         table.setSortingEnabled(True)
         table.setSelectionBehavior(QTableView.SelectRows)
 
-        table.setHorizontalHeaderLabels(["From", "To", "Duration", "Sub1"])
+        table.setHorizontalHeaderLabels(
+            ["From", "To", "Duration", "Sub1", "Sub2"])
         table.setRowCount(len(self._items))
         header = table.horizontalHeader()
         header: QHeaderView
@@ -86,6 +88,7 @@ class PreviewDisplay(QWidget):
         header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(3, QHeaderView.Stretch)
+        header.setSectionResizeMode(4, QHeaderView.Stretch)
 
         for i, item in enumerate(self._items):
             item: PreviewItem
@@ -99,6 +102,7 @@ class PreviewDisplay(QWidget):
             table.setItem(i, 1, QTableWidgetItem(format(end_time)))
             table.setItem(i, 2, QTableWidgetItem(format(duration)))
             table.setItem(i, 3, QTableWidgetItem(item.target_sub))
+            table.setItem(i, 4, QTableWidgetItem(item.native_sub))
 
         table.resizeColumnsToContents()
         table.resizeRowsToContents()
@@ -142,3 +146,26 @@ class Result(QGroupBox):
         layout.addWidget(inactive_value_label, 1, 1)
 
         self.setLayout(layout)
+
+
+class PreviewSnapshot(QWidget):
+    def __init__(self, parent=None, flags=Qt.WindowFlags()):
+        super().__init__(parent=parent, flags=flags)
+
+        layout = QGridLayout()
+        details_layout = QVBoxLayout()
+        details_layout.setAlignment(Qt.AlignTop)
+        self.setLayout(layout)
+        i = image("", "PreviewSnapshot")
+        layout.addWidget(i, 0, 0, 1, 1)
+
+        details_layout.addWidget(
+            label("Sub1", "SnapshotSub1"), alignment=Qt.AlignTop)
+        details_layout.addWidget(
+            textarea("PreviewSub1"), alignment=Qt.AlignTop)
+
+        details_layout.addWidget(label("Sub2", "SnapshotSub2"))
+        details_layout.addWidget(
+            textarea("PreviewSub2", text=""), alignment=Qt.AlignTop)
+
+        layout.addLayout(details_layout, 0, 2, 1, 1)

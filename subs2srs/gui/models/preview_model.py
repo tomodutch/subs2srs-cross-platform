@@ -8,6 +8,7 @@ from subs2srs.gui.preview import Preview
 from subs2srs.gui.state import State, StatePreview
 from typing import List
 from subs2srs.gui.main_widget import MainWidget
+from subs2srs.core.preview_item import PreviewItem
 
 
 class PreviewModel:
@@ -136,6 +137,26 @@ class PreviewModel:
         for row in rows:
             row: List[QTableWidgetItem]
 
+        index = preview_table.selectedIndexes()[0]
+        self.updateDetails(index.row())
+
+    def updateDetails(self, active_row_index):
+        items = self._state.preview.items
+        if len(items) > 0:
+            item: PreviewItem = items[active_row_index]
+            snapshot1: QTextEdit = self._app.findChild(QObject, "PreviewSub1")
+            snapshot1.setText(item.target_sub)
+
+            if item.native_sub:
+                snapshot2: QTextEdit = self._app.findChild(QObject, "PreviewSub2")
+                snapshot2.setText(item.native_sub)
+
+            output = self._extractor.get_snapshot(item.from_time_seconds())
+            l: QLabel = self._app.findChild(QLabel, "PreviewSnapshot")
+            p = QPixmap()
+            p.loadFromData(output)
+            l.setPixmap(p)
+
     @pyqtSlot()
     def toMain(self, event):
         self._app.setCentralWidget(MainWidget())
@@ -145,7 +166,8 @@ class PreviewModel:
         self._state.preview = StatePreview()
         self._extractor = Extractor(
             media_file=self._state.video_file,
-            target_sub=Subtitle(self._state.sub1_file)
+            target_sub=Subtitle(self._state.sub1_file),
+            native_sub=Subtitle(self._state.sub2_file)
         )
 
         items = list(self._extractor.preview())
@@ -155,3 +177,4 @@ class PreviewModel:
 
         self._app.setCentralWidget(preview)
         self.updateActiveLineCount()
+        self.updateDetails(0)

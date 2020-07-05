@@ -4,6 +4,7 @@ from .preview_item import PreviewItem
 import os
 import csv
 from datetime import timedelta
+from typing import Union
 
 
 class SubtitleSetting:
@@ -11,19 +12,30 @@ class SubtitleSetting:
 
 
 class Extractor:
-    def __init__(self, media_file, target_sub):
+    def __init__(self, media_file, target_sub, native_sub=None):
         super().__init__()
         self._media_file = media_file
         self._target_sub: Subtitle = target_sub
+        self._native_sub: Union[None, Subtitle] = native_sub
         self._input = ffmpeg.input(self._media_file)
 
     def preview(self):
+        def get_native(target):
+            for line in self._native_sub.lines():
+                if line.start >= target.start and line.start <= target.end:
+                    return line
+
         for line in self._target_sub.lines():
+            native_line = get_native(line)
+            native_sub = ""
+            if native_line:
+                native_sub = native_line.text
+
             preview = PreviewItem(
                 from_time=line.start,
                 end_time=line.end,
                 target_sub=line.text,
-                native_sub=""
+                native_sub=native_sub
             )
 
             yield preview
@@ -58,7 +70,6 @@ class Extractor:
                         'atrim', start=line.start / 1000, end=line.end / 1000)
                     out = ffmpeg.output(audio, loc).overwrite_output()
                     outputs.append(out)
-# 1_043_0.08.02.953
                     timestamp = line.start
                     writer.writerow([
                         marker,
@@ -79,3 +90,10 @@ class Extractor:
         for i, o in enumerate(picture_outputs):
             o.run()
             yield ("picture", total_audio + i + 1, total)
+
+    def get_snapshot(self, time):
+        loc_pic = ""
+        picture_output = ffmpeg.input(self._media_file, ss=time).output(
+            'pipe:', vframes=1, format='image2', vcodec='mjpeg').overwrite_output()
+
+        return picture_output.run(capture_stdout=True)[0]

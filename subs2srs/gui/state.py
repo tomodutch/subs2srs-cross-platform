@@ -14,8 +14,8 @@ class StatePreview:
 
 class State:
     deck_name = None
-    sub1_file = "/Users/thomasfarla/Downloads/Eizouken ni wa Te wo Dasu na! - 01 (NHKG).srt"
-    sub2_file = None
-    video_file = "/Users/thomasfarla/Downloads/[HorribleSubs] Eizouken ni wa Te wo Dasu na! - 01 [480p].mkv"
+    sub1_file = "/Users/thomasfarla/Documents/subs2srs-cross-platform/tests/fixtures/in2.srt"
+    sub2_file = "/Users/thomasfarla/Documents/subs2srs-cross-platform/tests/fixtures/in2-en.srt"
+    video_file = "/Users/thomasfarla/Documents/subs2srs-cross-platform/tests/fixtures/in2.mkv"
     output_file = "/Users/thomasfarla/Documents/test-subs"
     preview = StatePreview()
