@@ -9,6 +9,7 @@ from subs2srs.gui.state import State, StatePreview
 from typing import List
 from subs2srs.gui.main_widget import MainWidget
 from subs2srs.core.preview_item import PreviewItem
+from PyQt5.QtMultimedia import QSoundEffect
 
 
 class PreviewModel:
@@ -156,6 +157,17 @@ class PreviewModel:
             p = QPixmap()
             p.loadFromData(output)
             l.setPixmap(p)
+
+            audio = self._extractor.get_audio(item.from_time / 1000, item.end_time / 1000)
+
+            sound = QSoundEffect()
+            sound.setVolume(1)
+            sound.setSource(
+                # QUrl.fromEncoded(audio)
+                QUrl.fromLocalFile("/Users/thomasfarla/Documents/subs2srs-cross-platform/test.wav")
+            )
+
+            sound.play()
 
     @pyqtSlot()
     def toMain(self, event):

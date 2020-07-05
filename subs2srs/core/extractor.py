@@ -94,6 +94,13 @@ class Extractor:
     def get_snapshot(self, time):
         loc_pic = ""
         picture_output = ffmpeg.input(self._media_file, ss=time).output(
-            'pipe:', vframes=1, format='image2', vcodec='mjpeg').overwrite_output()
+            'pipe:', vframes=1, format='image2', vcodec='mjpeg')
 
         return picture_output.run(capture_stdout=True)[0]
+
+    def get_audio(self, start_second, end_second):
+        audio = self._input.audio.filter(
+            'atrim', start=start_second, end=end_second) \
+            .output('-', format='wav').overwrite_output()
+
+        return audio.run(capture_stdout=True)[0]
