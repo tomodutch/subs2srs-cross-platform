@@ -33,28 +33,29 @@ class PreviewDisplaySettings(QWidget):
     def __init__(self, parent=None, flags=Qt.WindowFlags()):
         super().__init__(parent=parent, flags=flags)
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setAlignment(Qt.AlignTop)
         top_layout = QVBoxLayout()
         bottom_layout = QVBoxLayout()
         self.setLayout(layout)
 
         top_layout.setAlignment(Qt.AlignTop)
         bottom_layout.setAlignment(Qt.AlignBottom)
-        layout.addLayout(top_layout)
-        layout.addLayout(bottom_layout)
+        layout.addWidget(Result())
 
-        top_layout.addWidget(
+        layout.addWidget(
             button("Select All", "Preview.SelectAll", "previewSelectAll"))
 
-        top_layout.addWidget(
+        layout.addWidget(
             button("Select None", "Preview.SelectNone", "previewSelectNone"))
 
-        top_layout.addWidget(
+        layout.addWidget(
             button("Invert", "Preview.Invert", "previewSelectInvert"))
 
-        bottom_layout.addWidget(
+        layout.addWidget(
             info_button("Activate", "Preview.Active", "previewActivate"))
 
-        bottom_layout.addWidget(
+        layout.addWidget(
             error_button("Deactivate", "Preview.Deactive", "previewDeactivate"))
 
 
@@ -64,8 +65,8 @@ class PreviewDisplay(QWidget):
         layout = QHBoxLayout()
         self._items = items
 
-        layout.addWidget(self.setup_table())
-        layout.addWidget(PreviewDisplaySettings())
+        layout.addWidget(self.setup_table(), stretch=1)
+        layout.addWidget(PreviewDisplaySettings(), stretch=0, alignment=Qt.AlignTop)
 
         self.setLayout(layout)
 
@@ -122,11 +123,10 @@ class Top(QWidget):
 
         layout.addWidget(input, 0, 0, 1, 1)
         layout.addWidget(btn, 0, 2, 1, 1)
-        layout.addWidget(Result(), 0, 3, 1, 1)
         self.setLayout(layout)
 
 
-class Result(QGroupBox):
+class Result(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
@@ -155,7 +155,7 @@ class PreviewSnapshot(QWidget):
         details_layout.setAlignment(Qt.AlignTop)
         self.setLayout(layout)
         i = image("", "PreviewSnapshot")
-        layout.addWidget(i, 0, 0, 1, 1)
+        layout.addWidget(i, 0, 0, 1, 1, alignment=Qt.AlignTop)
 
         details_layout.addWidget(
             label("Sub1", "SnapshotSub1"), alignment=Qt.AlignTop)

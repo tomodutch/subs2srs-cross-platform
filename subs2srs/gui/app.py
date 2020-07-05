@@ -26,6 +26,8 @@ class App(QMainWindow):
         self.setWindowTitle("subs2srs")
         self.setObjectName("App.Main")
         self.setCentralWidget(MainWidget())
+        self.setMinimumHeight(600)
+        self.setMinimumWidth(800)
         self.show()
 
 

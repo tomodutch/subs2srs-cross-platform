@@ -204,3 +204,4 @@ class PreviewModel:
         self._app.setCentralWidget(preview)
         self.updateActiveLineCount()
         self.updateDetails(0)
+        self._app.updateGeometry()
