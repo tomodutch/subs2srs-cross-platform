@@ -1,0 +1,1 @@
+pyinstaller -n subs2srs -F subs2srs/gui/app.py

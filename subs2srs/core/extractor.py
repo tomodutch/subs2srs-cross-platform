@@ -102,6 +102,9 @@ class Extractor:
     def run(self, output_dir, tags=[], start=0, end=None, exclude=None):
         if exclude is None:
             exclude = set()
+        
+        if tags is None:
+            tags = []
 
         outputs = []
         picture_outputs = []
@@ -133,7 +136,6 @@ class Extractor:
                         marker,
                         '[sound:{}]'.format(audio_name),
                         '<img src="{}">'.format(media_name),
-                        name,
                         line.target_sub,
                         line.native_sub,
                         "tags:" + " ".join(tags)

@@ -37,7 +37,7 @@ class RootModel:
         if event is None:
             return
 
-        self._state.sub1_file = event.value
+        self._state.sub2_file = event.value
         input = self._app.findChild(QObject, "sub2Input")
         input.setText(event.value)
 
@@ -99,7 +99,10 @@ class RootModel:
             if self._state.preview:
                 exclude = self._state.preview.inactive_items
 
-            tags = [self._state.deck_name]
+            tags = []
+            if self._state.deck_name:
+                tags.append(self._state.deck_name)
+
             for type, i, total in extractor.run(output, exclude=exclude, tags=tags):
                 val = int(i / total * 100)
                 QMetaObject.invokeMethod(self._app,

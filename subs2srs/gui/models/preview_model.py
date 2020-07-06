@@ -193,10 +193,14 @@ class PreviewModel:
     @pyqtSlot()
     def doPreview(self, event):
         self._state.preview = StatePreview()
+        native_file = None
+        if self._state.sub2_file:
+            native_file = Subtitle(self._state.sub2_file)
+
         self._extractor = Extractor(
             media_file=self._state.video_file,
             target_sub=Subtitle(self._state.sub1_file),
-            native_sub=Subtitle(self._state.sub2_file)
+            native_sub=native_file
         )
 
         items = list(self._extractor.preview())
@@ -234,7 +238,15 @@ def is_good_japanese(text: str):
         return False
 
     clean = re.sub(r'（.*）', '', text).strip()
+    clean = re.sub(sound_re, '', clean).strip()
+
     if not is_min_length(clean):
+        return False
+
+    if too_much_katakana(clean):
+        return False
+    
+    if is_sung(clean):
         return False
 
     return True
@@ -243,7 +255,10 @@ def is_good_japanese(text: str):
 kanji_regex = re.compile('([一-龯])')
 kana_regex = re.compile('([ぁ-んァ-ン])')
 japanese_regex = re.compile('([一-龯ぁ-んァ-ン])')
-
+n_ja_re = re.compile('([^一-龯ぁ-んァ-ン])')
+full_width_katakana_regex = re.compile('([ァ-ン])')
+half_katakana_re = re.compile('([ｧ-ﾝﾞﾟ])')
+sound_re = re.compile('(\(.*[音声]\))')
 
 def is_japanese(text: str):
     matches = re.search(japanese_regex, text)
@@ -258,3 +273,17 @@ def is_min_length(text: str):
 
     else:
         return len(text) > 8
+
+def is_sung(text: str):
+    return text[0] == "・"
+
+def too_much_katakana(text: str):
+    n = re.sub(n_ja_re, '', text)
+    n = n.replace(' ', '')
+    n = n.replace('　', '')
+    n = n.replace('！', '')
+    n = n.replace('。', '')
+    n = re.sub(full_width_katakana_regex, '', n)
+    n = re.sub(half_katakana_re, '', n)
+
+    return len(n) < 4
