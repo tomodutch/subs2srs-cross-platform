@@ -1,3 +1,5 @@
+import queue
+import threading
 import hashlib
 import ffmpeg
 from .subtitle import Subtitle
@@ -6,6 +8,10 @@ import os
 import csv
 from datetime import timedelta
 from typing import Union
+from multiprocessing import Process, Lock
+from subs2srs.core.threading import do_worker_pool
+
+q = queue.Queue(maxsize=10)
 
 
 class SubtitleSetting:
@@ -102,11 +108,12 @@ class Extractor:
     def run(self, output_dir, tags=[], start=0, end=None, exclude=None):
         if exclude is None:
             exclude = set()
-        
+
         if tags is None:
             tags = []
 
         outputs = []
+        audio_items = []
         picture_outputs = []
         csv_path = os.path.join(output_dir, "output.csv")
         with open(csv_path, 'w+', encoding='utf-8') as f:
@@ -130,7 +137,15 @@ class Extractor:
                     audio = self._input.audio.filter(
                         'atrim', start=start / 1000, end=end / 1000)
                     out = ffmpeg.output(audio, loc).overwrite_output()
+                    audio_items.append({
+                        "start": start,
+                        "end": end,
+                        "loc": loc,
+                        "media": self._media_file
+                    })
+
                     outputs.append(out)
+
                     timestamp = start
                     writer.writerow([
                         marker,
@@ -148,13 +163,50 @@ class Extractor:
 
         total = len(outputs) + len(picture_outputs)
         total_audio = len(outputs)
-        for i, o in enumerate(outputs):
-            o.run()
-            yield ("audio", i + 1, total)
 
-        for i, o in enumerate(picture_outputs):
-            o.run()
-            yield ("picture", total_audio + i + 1, total)
+        def do_audio(item):
+            media_file = item["media"]
+            loc = item["loc"]
+            start = item["start"]
+            end = item["end"]
+
+            inp = ffmpeg.input(media_file)
+            audio = inp.audio.filter(
+                'atrim', start=start / 1000, end=end / 1000)
+            out = ffmpeg.output(
+                audio, loc, loglevel='quiet').overwrite_output()
+            out.run()
+
+        def do_image(item):
+            media_file = item["media"]
+            loc = item["loc"]
+            start = item["start"]
+            end = item["end"]
+
+            file, _ = os.path.splitext(loc)
+            loc = "{}.jpg".format(file)
+
+            output = ffmpeg.input(self._media_file, ss=start / 1000)\
+                .output(
+                loc, vframes=1, format='image2', vcodec='mjpeg', loglevel='quiet').overwrite_output()
+            output.run()
+
+        def produce_audio(q):
+            for i, o in enumerate(audio_items):
+                q.put(o)
+                yield ("audio", i + 1, total)
+
+        def produce_image(q):
+            for i, o in enumerate(audio_items):
+                q.put(o)
+                yield ("picture", total_audio + i + 1, total)
+
+        for r in do_worker_pool(10, do_audio, produce_audio):
+            yield r
+
+        print("start image")
+        for r in do_worker_pool(10, do_image, produce_image):
+            yield r
 
     def get_snapshot(self, time):
         loc_pic = ""
@@ -170,6 +222,30 @@ class Extractor:
 
         return out.run(capture_stdout=True)[0]
 
+    def get_audio_in_batch(self, points):
+        processes = []
+        for (start, end) in points:
+            process = (self._input.audio.filter(
+                'atrim', start=start, end=end)
+                .output('-', format='wav').overwrite_output().run_async(capture_stdout=True)
+            )
+            processes.append(process)
+
+        for chunk in chunks(processes, 10):
+            running = []
+            for p in chunk:
+                running.append(p.run_async())
+
+            for r in running:
+                result = r.wait()
+                yield result[0]
+
 
 def generate_name(text: str):
     return hashlib.sha1(text.encode('utf-8')).hexdigest()
+
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]

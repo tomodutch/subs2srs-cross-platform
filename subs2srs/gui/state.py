@@ -15,8 +15,8 @@ class StatePreview:
 
 class State:
     deck_name = None
-    sub1_file = "/Users/thomasfarla/Documents/subs2srs-cross-platform/tests/fixtures/in2.srt"
+    sub1_file = "/Users/thomasfarla/Documents/subs2srs-cross-platform/tests/fixtures/in.srt"
     sub2_file = None
-    video_file = "/Users/thomasfarla/Documents/subs2srs-cross-platform/tests/fixtures/in2.mkv"
+    video_file = "/Users/thomasfarla/Documents/subs2srs-cross-platform/tests/fixtures/in.mkv"
     output_file = "/Users/thomasfarla/Documents/test-subs"
     preview = StatePreview()
